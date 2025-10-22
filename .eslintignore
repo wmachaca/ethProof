@@ -1,0 +1,28 @@
+# Dependency directories
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Environment files
+.env*
+!.env.example
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+**/__snapshots__/
+**/__mocks__/

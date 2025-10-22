@@ -1,0 +1,30 @@
+# Node modules
+node_modules/
+
+# Log files
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build directories dist for vitest
+/dist
+/build
+
+# Environment variables
+.env
+
+# VS Code settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS-specific files# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files# IDE-specific files
+.idea/
+
+# Ignore all package-lock.json files except the one in backend# Remove this line to stop ignoring package-lock.json
+#package-lock.json
+#!backend/package-lock.json

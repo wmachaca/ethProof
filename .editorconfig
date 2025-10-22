@@ -1,0 +1,41 @@
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# JavaScript, TypeScript, JSX, TSX
+[*.{js,jsx,ts,tsx}]
+indent_size = 2
+max_line_length = 100
+
+# JSON, HTML, CSS, SCSS
+[*.{json,html,css,scss}]
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = 80
+
+# YAML
+[*.{yml,yaml}]
+indent_size = 2
+
+# Makefiles
+[Makefile]
+indent_style = tab
+
+# SQL
+[*.sql]
+indent_size = 2
+
+# Config files
+[*.{eslintrc,prettierrc,babelrc}]
+indent_size = 2
+
+# Git files
+[*.{gitattributes,gitignore}]
+indent_size = 2

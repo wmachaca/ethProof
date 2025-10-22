@@ -1,0 +1,20 @@
+{
+    "name": "eth-proof-demo",
+    "version": "1.0.0",
+    "description": "Simple proof of concept for storage proofs",
+    "main": "dist/index.js",
+    "scripts": {
+      "start": "ts-node src/ProofDemo.ts",
+      "test:storage-proof": "ts-node src/StorageProofService.ts",
+      "dev": "ts-node --watch src/ProofDemo.ts"
+    },
+    "dependencies": {
+      "viem": "^2.38.3",
+      "ts-node": "^10.9.2",
+      "typescript": "^5.9.3"
+    },
+    "devDependencies": {
+      "@types/node": "^20.0.0"
+    }
+  }
+  
