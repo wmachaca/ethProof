@@ -43,15 +43,15 @@ export const anvilChain2 = defineChain({
   },
 });
 
-// Contract addresses (deploy and update these)
-export const STORAGE_CONTRACT_ADDRESSES = {
-  31337: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Update after deployment
-  31338: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Update after deployment
+// Contract addresses (updated by deploy script) - Fix type indexing
+export const STORAGE_CONTRACT_ADDRESSES: Record<number, string> = {
+  31337: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // SimpleStorage on Chain 1
+  31338: '0x0000000000000000000000000000000000000000', // Not deployed on Chain 2
 };
 
-export const VERIFIER_CONTRACT_ADDRESSES = {
-  31337: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', // Update after deployment
-  31338: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', // Update after deployment
+export const VERIFIER_CONTRACT_ADDRESSES: Record<number, string> = {
+  31337: '0x0000000000000000000000000000000000000000', // Not deployed on Chain 1
+  31338: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // SimpleVerifier on Chain 2
 };
 
 export const SUPPORTED_CHAINS = [anvilChain1, anvilChain2];

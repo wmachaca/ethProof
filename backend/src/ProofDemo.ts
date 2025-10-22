@@ -14,8 +14,6 @@ async function main() {
   console.log('\n🚀 =======================================');
   console.log('🚀 STORAGE PROOF DEMO - STARTING');
   console.log('🚀 =======================================');
-  console.log('📚 Proof of Concept for Cross-Chain Storage Verification');
-  console.log('🎯 Based on Chainstack eth_getProof article\n');
 
   try {
     // Initialize the storage proof service

@@ -1,6 +1,6 @@
-# 🌳 Storage Proof - Proof of Concept
+# 🎯 Simple Storage Proof - Cross-Chain Messaging
 
-A simple demonstration of cross-chain storage verification using `eth_getProof`.
+**GOAL**: Prove that `gameActive = true` happened on Chain A, verify it on Chain B.
 
 ## 🎯 What This Demonstrates
 

@@ -25,11 +25,9 @@ export class StorageProofService {
   private clients: Map<number, any> = new Map();
 
   constructor() {
-    console.log('\n🌳 =======================================');
-    console.log('🌳 STORAGE PROOF SERVICE - DEMO');
-    console.log('🌳 =======================================');
-    console.log('📚 Implementing concepts from Chainstack article');
-    console.log('🎯 Goal: Prove storage values exist between chains\n');
+    console.log('\n =======================================');
+    console.log(' STORAGE PROOF SERVICE - DEMO');
+    console.log(' =======================================');
 
     this.initializeClients();
   }
@@ -202,9 +200,12 @@ export class StorageProofService {
         proof.storageProof.length > 0
       );
 
-      console.log(`🔍 Storage proof validation: ${isValid ? '✅ VALID' : '❌ INVALID'}`);
+      // Ensure boolean return type
+      const validationResult = Boolean(isValid);
+
+      console.log(`🔍 Storage proof validation: ${validationResult ? '✅ VALID' : '❌ INVALID'}`);
       
-      if (isValid) {
+      if (validationResult) {
         console.log('✅ Proof components verified:');
         console.log('  🌳 State root exists');
         console.log('  📄 Source contract valid');
@@ -213,7 +214,7 @@ export class StorageProofService {
         console.log('  🛡️ Storage proof present');
       }
 
-      return isValid;
+      return validationResult;
 
     } catch (error) {
       console.error('❌ Error verifying storage proof:', error);
