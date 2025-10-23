@@ -43,7 +43,7 @@ export const anvilChain2 = defineChain({
   },
 });
 
-// Contract addresses (updated by deploy script) - Fix type indexing
+// Contract addresses (updated by deploy script)
 export const STORAGE_CONTRACT_ADDRESSES: Record<number, string> = {
   31337: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // SimpleStorage on Chain 1
   31338: '0x0000000000000000000000000000000000000000', // Not deployed on Chain 2

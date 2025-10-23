@@ -1,5 +1,6 @@
-import { createPublicClient, http, keccak256, encodePacked, toHex, pad } from 'viem';
-import { anvilChain1, anvilChain2, STORAGE_CONTRACT_ADDRESSES } from './config';
+import { createPublicClient, createWalletClient, http, keccak256, encodePacked, toHex, pad } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { anvilChain1, anvilChain2, STORAGE_CONTRACT_ADDRESSES, VERIFIER_CONTRACT_ADDRESSES } from './config';
 
 /**
  * 🌳 STORAGE PROOF SERVICE
@@ -23,6 +24,8 @@ export interface SimpleStorageProof {
 
 export class StorageProofService {
   private clients: Map<number, any> = new Map();
+  private walletClient2: any; // For sending transactions to Chain 2
+  private account: any;
 
   constructor() {
     console.log('\n =======================================');
@@ -36,6 +39,9 @@ export class StorageProofService {
    * 🔧 Initialize blockchain clients
    */
   private initializeClients(): void {
+    // Account for transactions
+    this.account = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+
     // Client for Chain 1 (port 8545)
     const client1 = createPublicClient({
       chain: anvilChain1,
@@ -48,12 +54,20 @@ export class StorageProofService {
       transport: http('http://127.0.0.1:8546'),
     });
 
+    // Wallet client for sending transactions to Chain 2
+    this.walletClient2 = createWalletClient({
+      account: this.account,
+      chain: anvilChain2,
+      transport: http('http://127.0.0.1:8546'),
+    });
+
     this.clients.set(31337, client1);
     this.clients.set(31338, client2);
 
     console.log('✅ Blockchain clients initialized:');
     console.log('  📡 Chain 31337: http://127.0.0.1:8545');
     console.log('  📡 Chain 31338: http://127.0.0.1:8546');
+    console.log('  👤 Account:', this.account.address);
   }
 
   /**
@@ -153,6 +167,10 @@ export class StorageProofService {
       // Get storage proof
       const ethProof = await this.getStorageProof(sourceChainId, contractAddress, blockNumber);
 
+      // 🔧 FIX: Pad storage value to 32 bytes for Solidity bytes32
+      const rawStorageValue = ethProof.storageProof[0]?.value || '0x0';
+      const paddedStorageValue = pad(rawStorageValue as `0x${string}`, { size: 32 });
+
       // Create complete proof structure
       const completeProof: SimpleStorageProof = {
         stateRoot: block.stateRoot,
@@ -160,7 +178,7 @@ export class StorageProofService {
         sourceChainId: sourceChainId,
         blockNumber: blockNumber,
         storageKey: ethProof.storageProof[0]?.key || '0x0',
-        storageValue: ethProof.storageProof[0]?.value || '0x0',
+        storageValue: paddedStorageValue, // Now properly padded to 32 bytes
         accountProof: ethProof.accountProof || [],
         storageProof: ethProof.storageProof[0]?.proof || []
       };
@@ -172,7 +190,8 @@ export class StorageProofService {
       console.log('  📦 Block Number:', completeProof.blockNumber);
       console.log('  🌳 State Root:', completeProof.stateRoot);
       console.log('  🔑 Storage Key:', completeProof.storageKey);
-      console.log('  💾 Storage Value:', completeProof.storageValue);
+      console.log('  💾 Storage Value (raw):', rawStorageValue);
+      console.log('  💾 Storage Value (padded):', completeProof.storageValue);
       console.log('  🏠 Account Proof Elements:', completeProof.accountProof.length);
       console.log('  🛡️ Storage Proof Elements:', completeProof.storageProof.length);
 
@@ -223,11 +242,129 @@ export class StorageProofService {
   }
 
   /**
-   * 🎮 Demo: Full storage proof flow
+   * ✅ NEW: Send proof to verifier contract on Chain 2
+   */
+  async sendProofToVerifierContract(proof: SimpleStorageProof): Promise<boolean> {
+    console.log('\n✅ ===== SENDING PROOF TO CHAIN 2 =====');
+
+    const verifierContract = VERIFIER_CONTRACT_ADDRESSES[31338];
+    console.log('🔍 SimpleVerifier contract:', verifierContract);
+
+    try {
+      // First check if already verified
+      const client2 = this.clients.get(31338);
+      const alreadyVerified = await client2.readContract({
+        address: verifierContract,
+        abi: [
+          {
+            "inputs": [{"type": "address"}],
+            "name": "isGameActiveProven",
+            "outputs": [{"type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          }
+        ],
+        functionName: 'isGameActiveProven',
+        args: [proof.sourceContract],
+      });
+
+      if (alreadyVerified) {
+        console.log('✅ Already verified on Chain 2!');
+        return true;
+      }
+
+      console.log('📤 Sending storage proof to Chain 2 verifier...');
+      console.log('📋 Proof data being sent:');
+      console.log('  🌳 State Root:', proof.stateRoot.substring(0, 20) + '...');
+      console.log('  📄 Source Contract:', proof.sourceContract);
+      console.log('  🔗 Chain ID:', proof.sourceChainId);
+      console.log('  📦 Block Number:', proof.blockNumber);
+      console.log('  💾 Storage Value:', proof.storageValue, '(1 = true)');
+      console.log('  🏠 Account Proofs:', proof.accountProof.length);
+      console.log('  🛡️ Storage Proofs:', proof.storageProof.length);
+
+      // 🔥 SEND THE PROOF TO VERIFIER CONTRACT - FIXED ABI
+      const hash = await this.walletClient2.writeContract({
+        address: verifierContract,
+        abi: [
+          {
+            "inputs": [{
+              "components": [
+                {"name": "stateRoot", "type": "bytes32"},
+                {"name": "sourceContract", "type": "address"},
+                {"name": "sourceChainId", "type": "uint256"},
+                {"name": "blockNumber", "type": "uint256"},
+                {"name": "storageKey", "type": "bytes32"},
+                {"name": "storageValue", "type": "bytes32"},
+                {"name": "accountProof", "type": "bytes[]"},     // Fixed: bytes[] not bytes32[]
+                {"name": "storageProof", "type": "bytes[]"}      // Fixed: bytes[] not bytes32[]
+              ],
+              "name": "proof",
+              "type": "tuple"
+            }],
+            "name": "verifyStorageProof",
+            "outputs": [{"type": "bool"}],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ],
+        functionName: 'verifyStorageProof',
+        args: [{
+          stateRoot: proof.stateRoot,
+          sourceContract: proof.sourceContract,
+          sourceChainId: proof.sourceChainId,
+          blockNumber: proof.blockNumber,
+          storageKey: proof.storageKey,
+          storageValue: proof.storageValue,
+          accountProof: proof.accountProof,    // Now properly typed as bytes[]
+          storageProof: proof.storageProof     // Now properly typed as bytes[]
+        }],
+        gas: 500000n,
+      });
+
+      console.log('📋 Verification transaction hash:', hash);
+      console.log('⏳ Waiting for Chain 2 to process the proof...');
+
+      // Wait for transaction confirmation
+      await client2.waitForTransactionReceipt({ hash });
+
+      // Check if verification worked
+      const nowVerified = await client2.readContract({
+        address: verifierContract,
+        abi: [
+          {
+            "inputs": [{"type": "address"}],
+            "name": "isGameActiveProven",
+            "outputs": [{"type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          }
+        ],
+        functionName: 'isGameActiveProven',
+        args: [proof.sourceContract],
+      });
+
+      if (nowVerified) {
+        console.log('🎉 VERIFICATION SUCCESSFUL!');
+        console.log('✅ Chain 2 now TRUSTS that gameActive=true on Chain 1!');
+        return true;
+      } else {
+        console.log('❌ Verification failed - Chain 2 rejected the proof');
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ Error sending proof to Chain 2:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🎮 Demo: Full storage proof flow WITH VERIFICATION
    */
   async demonstrateStorageProofFlow(): Promise<void> {
     console.log('\n🎮 =======================================');
-    console.log('🎮 DEMONSTRATING STORAGE PROOF FLOW');
+    console.log('🎮 COMPLETE STORAGE PROOF + VERIFICATION FLOW');
     console.log('🎮 =======================================\n');
 
     try {
@@ -240,24 +377,49 @@ export class StorageProofService {
       // Step 2: Create storage proof for Chain 1
       const proof = await this.createCompleteStorageProof(31337, Number(latestBlock));
 
-      // Step 3: Verify the proof
+      // Step 3: Verify the proof locally
       const isValid = this.verifyStorageProof(proof);
 
-      // Step 4: Show results
+      if (!isValid) {
+        console.log('❌ Local proof validation failed!');
+        return;
+      }
+
+      // Step 4: 🔥 NEW - Send proof to Chain 2 for verification
+      const verified = await this.sendProofToVerifierContract(proof);
+
+      // Step 5: Show final results
       console.log('\n🎉 =======================================');
-      console.log('🎉 STORAGE PROOF DEMONSTRATION COMPLETE!');
+      console.log('🎉 COMPLETE CROSS-CHAIN PROOF DEMO DONE!');
       console.log('🎉 =======================================');
-      console.log('✅ Proof generated and verified successfully!');
-      console.log('🔥 Ready for cross-chain verification!');
+      console.log('✅ Local proof validation: SUCCESS');
+      console.log(`${verified ? '✅' : '❌'} Chain 2 verification: ${verified ? 'SUCCESS' : 'FAILED'}`);
+      console.log('🔥 This proves Chain 2 trusts Chain 1 state!');
 
     } catch (error) {
       console.error('❌ Demo failed:', error);
     }
+  }
+
+  /**
+   * 🎯 NEW: Complete end-to-end demo (proof generation + verification)
+   */
+  async runCompleteDemo(): Promise<void> {
+    console.log('\n🚀 =======================================');
+    console.log('🚀 STARTING COMPLETE CROSS-CHAIN DEMO');
+    console.log('🚀 =======================================');
+    console.log('📚 This will:');
+    console.log('  1️⃣ Generate storage proof from Chain 1');
+    console.log('  2️⃣ Send proof to verifier on Chain 2');
+    console.log('  3️⃣ Confirm Chain 2 trusts Chain 1 state');
+    console.log('🔥 Let\'s prove gameActive=true across blockchains!\n');
+
+    await this.demonstrateStorageProofFlow();
   }
 }
 
 // Run demonstration if called directly
 if (require.main === module) {
   const service = new StorageProofService();
-  service.demonstrateStorageProofFlow();
+  service.runCompleteDemo();
 }
