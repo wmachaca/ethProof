@@ -138,18 +138,19 @@ else
     exit 1
 fi
 
-# Step 6: Deploy SimpleVerifier to Chain 2
-print_status "🚀 Deploying SimpleVerifier to Chain 2 (31338)..."
+# Step 6: Deploy ProductionVerifier to Chain 2
+print_status "🚀 Deploying ProductionVerifier to Chain 2 (31338)..."
 
-SIMPLEVERIFIER2_OUTPUT=$(forge create --broadcast --rpc-url http://127.0.0.1:8546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 src/SimpleVerifier.sol:SimpleVerifier)
+# 🔧 FIX: Deploy ProductionVerifier (the real MPT verifier)
+PRODUCTIONVERIFIER2_OUTPUT=$(forge create --broadcast --rpc-url http://127.0.0.1:8546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 src/ProductionVerifier.sol:ProductionVerifier)
 
-SIMPLEVERIFIER2_ADDRESS=$(echo "$SIMPLEVERIFIER2_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
+PRODUCTIONVERIFIER2_ADDRESS=$(echo "$PRODUCTIONVERIFIER2_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
 
-if [ ! -z "$SIMPLEVERIFIER2_ADDRESS" ] && [[ $SIMPLEVERIFIER2_ADDRESS =~ ^0x[a-fA-F0-9]{40}$ ]]; then
-    print_success "Chain 2 - SimpleVerifier deployed at: $SIMPLEVERIFIER2_ADDRESS"
+if [ ! -z "$PRODUCTIONVERIFIER2_ADDRESS" ] && [[ $PRODUCTIONVERIFIER2_ADDRESS =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+    print_success "Chain 2 - ProductionVerifier deployed at: $PRODUCTIONVERIFIER2_ADDRESS"
 else
-    print_error "Failed to deploy SimpleVerifier to Chain 2!"
-    print_error "Output: $SIMPLEVERIFIER2_OUTPUT"
+    print_error "Failed to deploy ProductionVerifier to Chain 2!"
+    print_error "Output: $PRODUCTIONVERIFIER2_OUTPUT"
     exit 1
 fi
 
@@ -162,7 +163,7 @@ cat > config.ts << EOF
 import { defineChain } from 'viem';
 
 /**
- * 🔧 SIMPLE CONFIGURATION FOR PROOF OF CONCEPT
+ * 🔧 PRODUCTION CONFIGURATION FOR REAL MPT VERIFICATION
  */
 
 // Define our two Anvil chains
@@ -212,7 +213,7 @@ export const STORAGE_CONTRACT_ADDRESSES: Record<number, string> = {
 
 export const VERIFIER_CONTRACT_ADDRESSES: Record<number, string> = {
   31337: '0x0000000000000000000000000000000000000000', // Not deployed on Chain 1
-  31338: '$SIMPLEVERIFIER2_ADDRESS', // SimpleVerifier on Chain 2
+  31338: '$PRODUCTIONVERIFIER2_ADDRESS', // ProductionVerifier on Chain 2
 };
 
 export const SUPPORTED_CHAINS = [anvilChain1, anvilChain2];
@@ -248,8 +249,8 @@ echo "PID: $ANVIL1_PID"
 echo ""
 print_status "=== CHAIN 2 (31338) - Verification Chain ==="
 echo "RPC URL: http://127.0.0.1:8546"
-echo "SimpleVerifier: $SIMPLEVERIFIER2_ADDRESS"
-echo "Ready to verify storage proofs from Chain 1"
+echo "ProductionVerifier: $PRODUCTIONVERIFIER2_ADDRESS"
+echo "Ready to verify storage proofs with REAL MPT verification from Chain 1"
 echo "PID: $ANVIL2_PID"
 echo ""
 print_status "=== LOGS ==="

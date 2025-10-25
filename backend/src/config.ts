@@ -1,7 +1,7 @@
 import { defineChain } from 'viem';
 
 /**
- * 🔧 SIMPLE CONFIGURATION FOR PROOF OF CONCEPT
+ * 🔧 PRODUCTION CONFIGURATION FOR REAL MPT VERIFICATION
  */
 
 // Define our two Anvil chains
@@ -51,7 +51,7 @@ export const STORAGE_CONTRACT_ADDRESSES: Record<number, string> = {
 
 export const VERIFIER_CONTRACT_ADDRESSES: Record<number, string> = {
   31337: '0x0000000000000000000000000000000000000000', // Not deployed on Chain 1
-  31338: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // SimpleVerifier on Chain 2
+  31338: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // ProductionVerifier on Chain 2
 };
 
 export const SUPPORTED_CHAINS = [anvilChain1, anvilChain2];

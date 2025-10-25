@@ -3,4 +3,14 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+remappings = [
+    '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
+    "forge-std=lib/forge-std/src",
+    "solidity-rlp=lib/solidity-rlp/contracts"
+]
+
+fs_permissions = [{ access = "read-write", path = "./" }]
+
+solc_version = "0.8.19"
+optimizer = true
+optimizer_runs = 1000000

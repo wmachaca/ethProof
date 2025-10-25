@@ -62,7 +62,7 @@ Gas Limit
 Genesis Timestamp
 ==================
 
-1761243925
+1761394264
 
 Genesis Number
 ==================
@@ -77,18 +77,62 @@ eth_estimateGas
 eth_feeHistory
 eth_sendRawTransaction
 eth_blockNumber
-
-    Transaction: 0x589941f983035b104901ab1773cbcb03dc7abdfee19ca9f7fadb23c62ae7b18d
-    Contract created: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-    Gas used: 472854
-
-eth_getTransactionReceipt
-    Block Number: 1
-    Block Hash: 0x2400ae23cf09791d3d6faf5b2c7fd2ac127e11a4a2f49099e3da1003eada2e80
-    Block Time: "Thu, 23 Oct 2025 18:25:30 +0000"
-
-eth_getTransactionReceipt
 eth_getBlockByNumber
+
+    Transaction: 0xefb06dbd8d61a7523750d3773f2fc04e1f42e62c74feddc3126e96c312aa3367
+    Contract created: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+    Gas used: 2240423
+
+    Block Number: 1
+    Block Hash: 0x692e37c4b15fd7b1c362dee5ae933943d5ffb657f6676c676438f356123230d4
+    Block Time: "Sat, 25 Oct 2025 12:11:10 +0000"
+
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_chainId
+eth_getTransactionCount
+eth_call
+eth_chainId
+eth_getTransactionCount
+eth_call
+eth_chainId
+eth_getTransactionCount
+eth_feeHistory
+eth_sendRawTransaction
+eth_blockNumber
+eth_getTransactionReceipt
+
+    Transaction: 0x2869454e52efa90077ea64d8310e3d1bdbe98ebbb9856c56e97bb52aa37c8030
+    Gas used: 62330
+
+    Block Number: 2
+    Block Hash: 0x3cb65935fe03907849abfa7795c68e6ad996645f22f3ab51f19b19faebdd6d13
+    Block Time: "Sat, 25 Oct 2025 12:29:40 +0000"
+
+eth_getBlockByNumber
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_chainId
+eth_getTransactionCount
+eth_call
+eth_call
+eth_getTransactionCount
+eth_getBlockByNumber
+eth_maxPriorityFeePerGas
+eth_sendRawTransaction
+
+    Transaction: 0xd3dd23384459372e8c879a8855107d20ae577af8cc599954e726e34b024e215c
+    Gas used: 62330
+
+    Block Number: 3
+    Block Hash: 0x854f7b29639f8228742e0854138f2731d8ee34592c97f1349085686dbf50d129
+    Block Time: "Sat, 25 Oct 2025 12:29:57 +0000"
+
+eth_getTransactionReceipt
+eth_call
+eth_chainId
+eth_getTransactionCount
+eth_call
 eth_chainId
 eth_getTransactionCount
 eth_call
