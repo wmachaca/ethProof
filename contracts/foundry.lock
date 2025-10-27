@@ -11,6 +11,12 @@
       "rev": "c64a1edb67b6e3f4a15cca8909c9482ad33a02b0"
     }
   },
+  "lib/optimism": {
+    "tag": {
+      "name": "v1.14.3",
+      "rev": "8c183919fe3fc791d996693a4ecceaa1e979063b"
+    }
+  },
   "lib/solidity-rlp": {
     "tag": {
       "name": "v2.0.8",

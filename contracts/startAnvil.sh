@@ -142,7 +142,7 @@ fi
 print_status "🚀 Deploying ProductionVerifier to Chain 2 (31338)..."
 
 # 🔧 FIX: Deploy ProductionVerifier (the real MPT verifier)
-PRODUCTIONVERIFIER2_OUTPUT=$(forge create --broadcast --rpc-url http://127.0.0.1:8546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 src/ProductionVerifier.sol:ProductionVerifier)
+PRODUCTIONVERIFIER2_OUTPUT=$(forge create --broadcast --rpc-url http://127.0.0.1:8546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 src/SimpleVerifier.sol:SimpleVerifier)
 
 PRODUCTIONVERIFIER2_ADDRESS=$(echo "$PRODUCTIONVERIFIER2_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
 

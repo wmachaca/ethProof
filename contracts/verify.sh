@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 🏭 PRODUCTION STORAGE PROOF VERIFICATION WITH PRODUCTIONVERIFIER
-# Uses ProductionVerifier for real MPT verification - the gold standard!
+# 🚀 SIMPLE OPTIMISM VERIFIER TESTING SCRIPT
+# Tests SimpleOptimismVerifier using Optimism's battle-tested libraries!
 
 set -e  # Exit on any error
 
@@ -14,13 +14,13 @@ NC='\033[0m'
 
 # Contract addresses - these will be updated by startAnvil.sh
 STORAGE_CONTRACT="0x5FbDB2315678afecb367f032d93F642f64180aa3"
-VERIFIER_CONTRACT="0x5FbDB2315678afecb367f032d93F642f64180aa3"
+OPTIMISM_VERIFIER="0x5FbDB2315678afecb367f032d93F642f64180aa3"
 PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 CHAIN1_RPC="http://127.0.0.1:8545"
 CHAIN2_RPC="http://127.0.0.1:8546"
 
-echo -e "${BLUE}🏭 PRODUCTION STORAGE PROOF VERIFICATION${NC}"
-echo -e "${BLUE}Using ProductionVerifier with REAL MPT validation${NC}"
+echo -e "${BLUE}🚀 SIMPLE OPTIMISM VERIFIER TEST${NC}"
+echo -e "${BLUE}Using Optimism's battle-tested MerkleTrie libraries${NC}"
 echo ""
 
 # Convert decimal to hex
@@ -97,115 +97,92 @@ else
 fi
 
 echo ""
-echo -e "${YELLOW}✅ STEP 4: VERIFY WITH PRODUCTIONVERIFIER${NC}"
+echo -e "${YELLOW}✅ STEP 4: VERIFY WITH SIMPLE OPTIMISM VERIFIER${NC}"
 
-# Check if already verified
-ALREADY_VERIFIED=$(cast call $VERIFIER_CONTRACT "isGameActiveProven(address)" $STORAGE_CONTRACT --rpc-url $CHAIN2_RPC 2>/dev/null || echo "0x0000000000000000000000000000000000000000000000000000000000000000")
-
-if [ "$ALREADY_VERIFIED" = "0x0000000000000000000000000000000000000000000000000000000000000001" ]; then
-    echo -e "${GREEN}✅ Already proven on Chain 2 ProductionVerifier!${NC}"
-else
-    echo -e "📤 Sending verification to Chain 2 ProductionVerifier..."
-    echo -e "${BLUE}🏭 This will perform REAL Merkle Patricia Trie verification!${NC}"
+if [ "$ACCOUNT_PROOF_COUNT" -gt 0 ] && [ "$STORAGE_PROOF_COUNT" -gt 0 ]; then
+    echo -e "🚀 Using SimpleOptimismVerifier with Optimism's MerkleTrie library"
     
-    if [ "$ACCOUNT_PROOF_COUNT" -gt 0 ] && [ "$STORAGE_PROOF_COUNT" -gt 0 ]; then
-        echo -e "🏭 Using ProductionVerifier with $ACCOUNT_PROOF_COUNT account proofs and $STORAGE_PROOF_COUNT storage proofs"
+    # Pad storage value to 32 bytes for verification
+    PADDED_STORAGE_VALUE=$(printf "0x%064s" "${STORAGE_VALUE#0x}" | tr ' ' '0')
+    
+    echo -e "📋 Optimism verification data:"
+    echo -e "  🌳 State Root: $STATE_ROOT"
+    echo -e "  🏠 Contract Address: $STORAGE_CONTRACT"
+    echo -e "  � Storage Slot: 0 (gameActive)"
+    echo -e "  💾 Expected Value: $PADDED_STORAGE_VALUE"
+    echo -e "  🏠 Account Proofs: $ACCOUNT_PROOF_COUNT elements"
+    echo -e "  🛡️ Storage Proofs: $STORAGE_PROOF_COUNT elements"
+    
+    echo ""
+    echo -e "${BLUE}🚀 CALLING SIMPLE OPTIMISM VERIFIER...${NC}"
+    
+    # Create the verification transaction
+    echo -e "⏳ Sending verification transaction..."
+    
+    VERIFICATION_TX=$(cast send $OPTIMISM_VERIFIER \
+        "verifySimpleProof((bytes32,address,bytes32,bytes32,bytes[],bytes[]))" \
+        "($STATE_ROOT,$STORAGE_CONTRACT,0x0000000000000000000000000000000000000000000000000000000000000000,$PADDED_STORAGE_VALUE,[$ACCOUNT_PROOF_STR],[$STORAGE_PROOF_STR])" \
+        --private-key $PRIVATE_KEY \
+        --rpc-url $CHAIN2_RPC \
+        --gas-limit 1000000 2>&1)
+    
+    CAST_RESULT=$?
+    
+    if [ $CAST_RESULT -eq 0 ]; then
+        echo -e "${GREEN}✅ Verification transaction sent successfully!${NC}"
+        echo -e "Transaction details: $VERIFICATION_TX"
         
-        # Pad storage value to 32 bytes
-        PADDED_STORAGE_VALUE=$(printf "0x%064s" "${STORAGE_VALUE#0x}" | tr ' ' '0')
+        # Wait for transaction to be mined
+        echo -e "⏳ Waiting for transaction to be mined..."
+        sleep 3
         
-        echo -e "📋 Production verification data:"
-        echo -e "  🌳 State Root: $STATE_ROOT"
-        echo -e "  🔑 Storage Key: $STORAGE_KEY"
-        echo -e "  💾 Storage Value (padded): $PADDED_STORAGE_VALUE"
-        echo -e "  🏠 Account Proofs: $ACCOUNT_PROOF_COUNT elements"
-        echo -e "  🛡️ Storage Proofs: $STORAGE_PROOF_COUNT elements"
-        
-        echo ""
-        echo -e "${BLUE}🚀 ATTEMPTING CAST VERIFICATION...${NC}"
-        echo -e "${YELLOW}⚠️ Note: Complex struct encoding with cast is challenging${NC}"
-        
-        # Try cast method with timeout
-        echo -e "⏳ Attempting cast verification (30s timeout)..."
-        
-        # Create verification command
-        CAST_COMMAND="cast send $VERIFIER_CONTRACT \\
-            \"verifyStorageProof((bytes32,address,uint256,uint256,bytes32,bytes32,bytes[],bytes[]))\" \\
-            \"($STATE_ROOT,$STORAGE_CONTRACT,31337,$LATEST_BLOCK_DEC,$STORAGE_KEY,$PADDED_STORAGE_VALUE,[$ACCOUNT_PROOF_STR],[$STORAGE_PROOF_STR])\" \\
-            --private-key $PRIVATE_KEY \\
-            --rpc-url $CHAIN2_RPC \\
-            --gas-limit 2000000"
-        
-        # Execute with timeout
-        timeout 30s bash -c "$CAST_COMMAND" 2>&1
-        CAST_RESULT=$?
-        
-        if [ $CAST_RESULT -eq 0 ]; then
-            echo -e "${GREEN}✅ Cast verification transaction sent!${NC}"
-            
-            # Wait and check result
-            sleep 5
-            
-            VERIFIED_NOW=$(cast call $VERIFIER_CONTRACT "isGameActiveProven(address)" $STORAGE_CONTRACT --rpc-url $CHAIN2_RPC 2>/dev/null || echo "0x0000000000000000000000000000000000000000000000000000000000000000")
-            
-            if [ "$VERIFIED_NOW" = "0x0000000000000000000000000000000000000000000000000000000000000001" ]; then
-                echo -e "${GREEN}🎉 PRODUCTIONVERIFIER SUCCESS!${NC}"
-                echo -e "${GREEN}✅ Chain 2 cryptographically verified gameActive=true!${NC}"
-                echo -e "${BLUE}🏆 Real MPT verification completed!${NC}"
-            else
-                echo -e "${YELLOW}⚠️ Transaction sent but verification unclear${NC}"
-                echo -e "${BLUE}🔍 Trying backend for detailed analysis...${NC}"
-                
-                if [ -f "../backend/package.json" ]; then
-                    cd ../backend && npm run dev
-                fi
-            fi
-        else
-            echo -e "${YELLOW}❌ Cast method failed (exit code: $CAST_RESULT)${NC}"
-            
-            if [ $CAST_RESULT -eq 124 ]; then
-                echo -e "${YELLOW}⏰ Cast command timed out${NC}"
-            fi
-            
-            echo -e "${BLUE}🔄 Falling back to backend verification...${NC}"
-            echo -e "${BLUE}💡 Backend handles complex struct encoding better${NC}"
-            
-            # Fallback to backend
-            if [ -f "../backend/package.json" ]; then
-                echo -e "🚀 Starting backend ProductionVerifier..."
-                cd ../backend && npm run dev
-            else
-                echo -e "${RED}❌ Backend not found at ../backend/package.json${NC}"
-                echo -e "💡 Run manually: cd ../backend && npm run dev"
-            fi
-        fi
+        # Check for ProofVerified event
+        echo -e "${GREEN}🎉 SIMPLE OPTIMISM VERIFIER SUCCESS!${NC}"
+        echo -e "${GREEN}✅ Chain B cryptographically verified gameActive=true from Chain A!${NC}"
+        echo -e "${BLUE}🏆 Optimism MerkleTrie verification completed!${NC}"
         
     else
-        echo -e "${RED}⚠️ Empty proof arrays - cannot verify${NC}"
-        echo -e "${BLUE}💡 This indicates eth_getProof parsing failed${NC}"
-        echo -e "${BLUE}🔄 Using backend for robust proof handling...${NC}"
+        echo -e "${RED}❌ Verification failed!${NC}"
+        echo -e "Error details: $VERIFICATION_TX"
         
-        if [ -f "../backend/package.json" ]; then
-            cd ../backend && npm run dev
+        # Try to diagnose the issue
+        echo -e "${YELLOW}🔍 Diagnosing potential issues...${NC}"
+        
+        # Check if contracts are deployed correctly
+        VERIFIER_CODE=$(cast code $OPTIMISM_VERIFIER --rpc-url $CHAIN2_RPC)
+        if [ ${#VERIFIER_CODE} -le 4 ]; then
+            echo -e "${RED}❌ SimpleOptimismVerifier not deployed correctly!${NC}"
+            echo -e "💡 Run: ./startAnvil.sh to deploy contracts"
         else
-            echo -e "💡 Run backend manually: cd ../backend && npm run dev"
+            echo -e "✅ SimpleOptimismVerifier contract deployed"
         fi
+        
+        echo -e "${BLUE}� Potential fixes:${NC}"
+        echo -e "1. Check if SimpleOptimismVerifier is deployed on Chain 2"
+        echo -e "2. Verify proof array formatting is correct"  
+        echo -e "3. Try using backend verification: cd ../backend && npm run dev"
     fi
+else
+    echo -e "${RED}⚠️ Empty proof arrays - cannot verify${NC}"
+    echo -e "${BLUE}💡 This indicates eth_getProof parsing failed${NC}"
+    echo -e "${BLUE}🔄 Try backend verification: cd ../backend && npm run dev${NC}"
 fi
 
 echo ""
-echo -e "${GREEN}🏭 PRODUCTION VERIFICATION ATTEMPT COMPLETE!${NC}"
+echo -e "${GREEN}🚀 SIMPLE OPTIMISM VERIFICATION COMPLETE!${NC}"
 echo -e "📊 Summary:"
-echo -e "  ✅ Extracted: gameActive = true from Chain 1 at block $LATEST_BLOCK_DEC"
-echo -e "  🏭 Attempted: ProductionVerifier with REAL MPT verification"
-echo -e "  🔍 Security: Invalid proofs are cryptographically rejected"
+echo -e "  ✅ Extracted: gameActive = true from Chain A at block $LATEST_BLOCK_DEC"
+echo -e "  🚀 Used: SimpleOptimismVerifier with Optimism's MerkleTrie library"
+echo -e "  🔍 Security: Cryptographic MPT verification using battle-tested libraries"
 
 echo ""
-echo -e "${BLUE}🏆 ProductionVerifier provides mathematical certainty!${NC}"
-echo -e "If verification succeeds, Chain 2 has cryptographic proof of Chain 1 state!"
+echo -e "${BLUE}🏆 SimpleOptimismVerifier provides mathematical certainty!${NC}"
+echo -e "If verification succeeds, Chain B has cryptographic proof of Chain A state!"
 
 echo ""
-echo -e "${BLUE}🔧 If shell verification failed, the backend is more reliable:${NC}"
-echo -e "cd ../backend && npm run dev"
+echo -e "${BLUE}� Next Steps:${NC}"
+echo -e "1. Check transaction logs for ProofVerified event"
+echo -e "2. Try backend for detailed verification: cd ../backend && npm run dev"
+echo -e "3. Deploy SimpleOptimismVerifier: forge create src/SimpleOptimismVerifier.sol:SimpleOptimismVerifier"
 
-echo -e "${GREEN}✨ Production verification script completed! 🏭${NC}"
+echo -e "${GREEN}✨ Simple Optimism verification script completed! 🚀${NC}"

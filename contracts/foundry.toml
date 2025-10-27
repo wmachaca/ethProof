@@ -6,7 +6,8 @@ libs = ["lib"]
 remappings = [
     '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
     "forge-std=lib/forge-std/src",
-    "solidity-rlp=lib/solidity-rlp/contracts"
+    "solidity-rlp=lib/solidity-rlp/contracts",
+    "@eth-optimism/contracts-bedrock=lib/optimism/packages/contracts-bedrock/src"
 ]
 
 fs_permissions = [{ access = "read-write", path = "./" }]
