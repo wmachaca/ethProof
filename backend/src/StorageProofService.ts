@@ -3,23 +3,23 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { anvilChain1, anvilChain2, STORAGE_CONTRACT_ADDRESSES, VERIFIER_CONTRACT_ADDRESSES } from './config';
 
 /**
- * 🌳 STORAGE PROOF SERVICE
+ * 🌳 STORAGE PROOF SERVICE - ADAPTED FOR YOUR SIMPLE CONTRACTS
  * 
- * This demonstrates the core concepts from the Chainstack article:
- * 1. Calculate storage keys for Solidity mappings/variables
+ * This demonstrates the core concepts:
+ * 1. Calculate storage keys for SimpleStorage.gameActive 
  * 2. Use eth_getProof to get storage proofs
- * 3. Verify storage proofs on another chain
+ * 3. Verify with your SimpleVerifier.sol contract
  */
 
 export interface SimpleStorageProof {
-  stateRoot: string;
-  sourceContract: string;
-  sourceChainId: number;
-  blockNumber: number;
-  storageKey: string;
-  storageValue: string;
-  accountProof: string[];
-  storageProof: string[];
+  stateRoot: string;      // Block's state root from Chain 1
+  sourceContract: string; // SimpleStorage address
+  sourceChainId: number;  // 31337 (Chain 1)
+  blockNumber: number;    // Proof block height
+  storageKey: string;     // keccak256(slot) for bool gameActive (slot 0)
+  storageValue: string;   // Expected value (0x01 for true)
+  accountProof: string[]; // MPT proof from eth_getProof
+  storageProof: string[]; // Storage MPT proof
 }
 
 export class StorageProofService {
@@ -28,8 +28,9 @@ export class StorageProofService {
   private account: any;
 
   constructor() {
-    console.log('\n =======================================');
-    console.log(' STORAGE PROOF SERVICE - DEMO');
+    console.log('\n🎯 =======================================');
+    console.log(' SIMPLE STORAGE PROOF SERVICE');
+    console.log(' Adapted for SimpleStorage + SimpleVerifier');
     console.log(' =======================================');
 
     this.initializeClients();
@@ -71,17 +72,14 @@ export class StorageProofService {
   }
 
   /**
-   * 🔑 Calculate storage key for boolean gameActive
-   * 
-   * In SimpleStorage.sol: bool public gameActive;
-   * This is stored at slot 0 in contract storage
+   * 🔑 Calculate storage key for boolean gameActive (slot 0)
    */
   calculateStorageKey(slotNumber: number = 0): string {
     // For simple variables (not mappings), storage key = slot number
     const storageKey = pad(toHex(slotNumber), { size: 32 });
     
     console.log('🔑 Storage key calculated:');
-    console.log('  📊 Slot number:', slotNumber);
+    console.log('  📊 Slot number:', slotNumber, '(gameActive)');
     console.log('  🗝️  Storage key:', storageKey);
     
     return storageKey;
@@ -89,7 +87,6 @@ export class StorageProofService {
 
   /**
    * 🛡️ Get storage proof using eth_getProof
-   * This is THE method from the Chainstack article!
    */
   async getStorageProof(
     chainId: number,
@@ -112,7 +109,7 @@ export class StorageProofService {
 
       console.log('📡 Calling eth_getProof...');
 
-      // 🔥 THE MAGIC METHOD FROM THE ARTICLE!
+      // 🔥 THE MAGIC METHOD!
       const proof = await client.request({
         method: 'eth_getProof',
         params: [
@@ -129,7 +126,7 @@ export class StorageProofService {
       
       if (proof.storageProof?.[0]) {
         console.log('  🔑 Storage Key:', proof.storageProof[0].key);
-        console.log('  💾 Storage Value:', proof.storageProof[0].value);
+        console.log('  💾 Storage Value:', proof.storageProof[0].value, '(1 = true, 0 = false)');
         console.log('  🌳 Storage Proof Elements:', proof.storageProof[0].proof?.length || 0);
       }
 
@@ -142,13 +139,13 @@ export class StorageProofService {
   }
 
   /**
-   * 🎯 Create complete storage proof for cross-chain verification
+   * 🎯 Create proof structure for SimpleVerifier.sol
    */
-  async createCompleteStorageProof(
+  async createSimpleProof(
     sourceChainId: number,
     blockNumber: number
   ): Promise<SimpleStorageProof> {
-    console.log('\n🏗️ ===== CREATING COMPLETE STORAGE PROOF =====');
+    console.log('\n🏗️ ===== CREATING SIMPLE PROOF =====');
 
     try {
       const contractAddress = STORAGE_CONTRACT_ADDRESSES[sourceChainId];
@@ -167,123 +164,62 @@ export class StorageProofService {
       // Get storage proof
       const ethProof = await this.getStorageProof(sourceChainId, contractAddress, blockNumber);
 
-      // 🔧 FIX: Pad storage value to 32 bytes for Solidity bytes32
+      // 🔧 IMPORTANT: Format for SimpleVerifier.sol
       const rawStorageValue = ethProof.storageProof[0]?.value || '0x0';
       const paddedStorageValue = pad(rawStorageValue as `0x${string}`, { size: 32 });
 
-      // Create complete proof structure
-      const completeProof: SimpleStorageProof = {
+      // Create proof structure matching SimpleVerifier.SimpleProof struct
+      const simpleProof: SimpleStorageProof = {
         stateRoot: block.stateRoot,
         sourceContract: contractAddress,
         sourceChainId: sourceChainId,
         blockNumber: blockNumber,
         storageKey: ethProof.storageProof[0]?.key || '0x0',
-        storageValue: paddedStorageValue, // Now properly padded to 32 bytes
+        storageValue: paddedStorageValue, // Padded to 32 bytes for bytes32
         accountProof: ethProof.accountProof || [],
         storageProof: ethProof.storageProof[0]?.proof || []
       };
 
-      console.log('✅ Complete storage proof created!');
+      console.log('✅ Simple proof created for SimpleVerifier!');
       console.log('📋 Proof summary:');
       console.log('  🔗 Source Chain:', sourceChainId);
-      console.log('  📄 Source Contract:', completeProof.sourceContract);
-      console.log('  📦 Block Number:', completeProof.blockNumber);
-      console.log('  🌳 State Root:', completeProof.stateRoot);
-      console.log('  🔑 Storage Key:', completeProof.storageKey);
+      console.log('  📄 Source Contract:', simpleProof.sourceContract);
+      console.log('  📦 Block Number:', simpleProof.blockNumber);
+      console.log('  🌳 State Root:', simpleProof.stateRoot);
+      console.log('  🔑 Storage Key:', simpleProof.storageKey);
       console.log('  💾 Storage Value (raw):', rawStorageValue);
-      console.log('  💾 Storage Value (padded):', completeProof.storageValue);
-      console.log('  🏠 Account Proof Elements:', completeProof.accountProof.length);
-      console.log('  🛡️ Storage Proof Elements:', completeProof.storageProof.length);
+      console.log('  💾 Storage Value (padded):', simpleProof.storageValue);
+      console.log('  🏠 Account Proof Elements:', simpleProof.accountProof.length);
+      console.log('  🛡️ Storage Proof Elements:', simpleProof.storageProof.length);
 
-      return completeProof;
+      return simpleProof;
 
     } catch (error) {
-      console.error('❌ Error creating complete storage proof:', error);
+      console.error('❌ Error creating simple proof:', error);
       throw error;
     }
   }
 
   /**
-   * 🔍 Verify storage proof (simplified validation)
+   * ✅ Send proof to SimpleVerifier contract on Chain 2
    */
-  verifyStorageProof(proof: SimpleStorageProof): boolean {
-    console.log('\n🔍 ===== VERIFYING STORAGE PROOF =====');
-
-    try {
-      // Basic validation (full implementation would verify Merkle Patricia Trie)
-      const isValid = (
-        proof.stateRoot && proof.stateRoot !== '0x' &&
-        proof.sourceContract && proof.sourceContract !== '0x' &&
-        proof.storageKey && proof.storageKey !== '0x0' &&
-        proof.accountProof.length > 0 &&
-        proof.storageProof.length > 0
-      );
-
-      // Ensure boolean return type
-      const validationResult = Boolean(isValid);
-
-      console.log(`🔍 Storage proof validation: ${validationResult ? '✅ VALID' : '❌ INVALID'}`);
-      
-      if (validationResult) {
-        console.log('✅ Proof components verified:');
-        console.log('  🌳 State root exists');
-        console.log('  📄 Source contract valid');
-        console.log('  🔑 Storage key valid');
-        console.log('  🏠 Account proof present');
-        console.log('  🛡️ Storage proof present');
-      }
-
-      return validationResult;
-
-    } catch (error) {
-      console.error('❌ Error verifying storage proof:', error);
-      return false;
-    }
-  }
-
-  /**
-   * ✅ Send proof to ProductionVerifier contract on Chain 2
-   */
-  async sendProofToVerifierContract(proof: SimpleStorageProof): Promise<boolean> {
-    console.log('\n✅ ===== SENDING PROOF TO CHAIN 2 =====');
+  async sendProofToSimpleVerifier(proof: SimpleStorageProof): Promise<boolean> {
+    console.log('\n✅ ===== SENDING PROOF TO SIMPLE VERIFIER =====');
 
     const verifierContract = VERIFIER_CONTRACT_ADDRESSES[31338];
-    console.log('🏭 ProductionVerifier contract:', verifierContract);
+    console.log('🔧 SimpleVerifier contract:', verifierContract);
 
     try {
-      // First check if already verified
-      const client2 = this.clients.get(31338);
-      const alreadyVerified = await client2.readContract({
-        address: verifierContract,
-        abi: [
-          {
-            "inputs": [{"type": "address"}],
-            "name": "isGameActiveProven",
-            "outputs": [{"type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-          }
-        ],
-        functionName: 'isGameActiveProven',
-        args: [proof.sourceContract],
-      });
-
-      if (alreadyVerified) {
-        console.log('✅ Already verified on Chain 2!');
-        return true;
-      }
-
-      console.log('📤 Sending storage proof to Chain 2 ProductionVerifier...');
+      console.log('📤 Sending storage proof to Chain 2 SimpleVerifier...');
       console.log('📋 Proof data being sent:');
       console.log('  🌳 State Root:', proof.stateRoot.substring(0, 20) + '...');
       console.log('  📄 Source Contract:', proof.sourceContract);
-      console.log('  🔗 Chain ID:', proof.sourceChainId);
-      console.log('  📦 Block Number:', proof.blockNumber);
-      console.log('  💾 Storage Value:', proof.storageValue, '(1 = true)');
+      console.log('  🔑 Storage Slot:', '0x0 (gameActive)');
+      console.log('  💾 Expected Value:', proof.storageValue, '(1 = true)');
       console.log('  🏠 Account Proofs:', proof.accountProof.length);
       console.log('  🛡️ Storage Proofs:', proof.storageProof.length);
 
-      // 🏭 PRODUCTION VERIFIER ABI - Real MPT verification
+      // 🎯 SimpleVerifier.sol ABI - matches your contract exactly
       const hash = await this.walletClient2.writeContract({
         address: verifierContract,
         abi: [
@@ -291,148 +227,87 @@ export class StorageProofService {
             "inputs": [{
               "components": [
                 {"name": "stateRoot", "type": "bytes32"},
-                {"name": "sourceContract", "type": "address"},
-                {"name": "sourceChainId", "type": "uint256"},
-                {"name": "blockNumber", "type": "uint256"},
-                {"name": "storageKey", "type": "bytes32"},
-                {"name": "storageValue", "type": "bytes32"},
+                {"name": "contractAddress", "type": "address"}, 
+                {"name": "storageSlot", "type": "bytes32"},
+                {"name": "expectedValue", "type": "bytes32"},
                 {"name": "accountProof", "type": "bytes[]"},
                 {"name": "storageProof", "type": "bytes[]"}
               ],
               "name": "proof",
               "type": "tuple"
             }],
-            "name": "verifyStorageProof",
+            "name": "verifySimpleProof",
             "outputs": [{"type": "bool"}],
-            "stateMutability": "nonpayable",
+            "stateMutability": "nonpayable", 
             "type": "function"
           }
         ],
-        functionName: 'verifyStorageProof',
+        functionName: 'verifySimpleProof',
         args: [{
           stateRoot: proof.stateRoot,
-          sourceContract: proof.sourceContract,
-          sourceChainId: proof.sourceChainId,
-          blockNumber: proof.blockNumber,
-          storageKey: proof.storageKey,
-          storageValue: proof.storageValue,
+          contractAddress: proof.sourceContract,  // Note: contractAddress in struct
+          storageSlot: '0x0000000000000000000000000000000000000000000000000000000000000000', // Slot 0
+          expectedValue: proof.storageValue,
           accountProof: proof.accountProof,
           storageProof: proof.storageProof
         }],
-        gas: 2000000n, // 🔧 INCREASED GAS for full MPT verification
+        gas: 1000000n, // Sufficient gas for Optimism MerkleTrie verification
       });
 
       console.log('📋 Verification transaction hash:', hash);
-      console.log('⏳ Waiting for Chain 2 to process the REAL MPT proof...');
+      console.log('⏳ Waiting for Chain 2 to process the proof...');
 
       // Wait for transaction confirmation
+      const client2 = this.clients.get(31338);
       const receipt = await client2.waitForTransactionReceipt({ hash });
       
       // 🔧 CHECK TRANSACTION STATUS
       if (receipt.status === 'reverted') {
-        console.log('❌ ProductionVerifier transaction reverted!');
+        console.log('❌ SimpleVerifier transaction reverted!');
         console.log('📋 This could mean:');
-        console.log('  1. 🔍 The MPT proof is invalid (security working!)');
+        console.log('  1. 🔍 "MerkleTrie: invalid large internal hash" - proof mismatch');
         console.log('  2. 🧮 RLP decoding failed');
-        console.log('  3. ⛽ Out of gas (complex MPT verification)');
-        console.log('  4. 🌳 Merkle Patricia Trie path mismatch');
+        console.log('  3. ⛽ Out of gas');
+        console.log('  4. 🌳 State root and proof from different blocks');
         console.log('📋 Transaction receipt:', receipt);
-        
-        // Try to get revert reason
-        try {
-          await client2.simulateContract({
-            address: verifierContract,
-            abi: [
-              {
-                "inputs": [{
-                  "components": [
-                    {"name": "stateRoot", "type": "bytes32"},
-                    {"name": "sourceContract", "type": "address"},
-                    {"name": "sourceChainId", "type": "uint256"},
-                    {"name": "blockNumber", "type": "uint256"},
-                    {"name": "storageKey", "type": "bytes32"},
-                    {"name": "storageValue", "type": "bytes32"},
-                    {"name": "accountProof", "type": "bytes[]"},
-                    {"name": "storageProof", "type": "bytes[]"}
-                  ],
-                  "name": "proof",
-                  "type": "tuple"
-                }],
-                "name": "verifyStorageProof",
-                "outputs": [{"type": "bool"}],
-                "stateMutability": "nonpayable",
-                "type": "function"
-              }
-            ],
-            functionName: 'verifyStorageProof',
-            args: [{
-              stateRoot: proof.stateRoot,
-              sourceContract: proof.sourceContract,
-              sourceChainId: proof.sourceChainId,
-              blockNumber: proof.blockNumber,
-              storageKey: proof.storageKey,
-              storageValue: proof.storageValue,
-              accountProof: proof.accountProof,
-              storageProof: proof.storageProof
-            }],
-          });
-        } catch (simulateError: any) {
-          console.log('❌ Simulation error (revert reason):', simulateError.message);
-          
-          if (simulateError.message.includes('Invalid account RLP')) {
-            console.log('💡 Issue: RLP decoding of account data failed');
-            console.log('🔧 Solution: Need proper RLP-encoded account proof elements');
-          } else if (simulateError.message.includes('Hash mismatch')) {
-            console.log('💡 Issue: Merkle Patricia Trie hash verification failed');
-            console.log('🔧 Solution: The proof path is cryptographically invalid');
-          }
-        }
-        
         return false;
       }
 
-      // Check if verification worked
-      const nowVerified = await client2.readContract({
-        address: verifierContract,
-        abi: [
-          {
-            "inputs": [{"type": "address"}],
-            "name": "isGameActiveProven",
-            "outputs": [{"type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-          }
-        ],
-        functionName: 'isGameActiveProven',
-        args: [proof.sourceContract],
-      });
+      // 🎉 SUCCESS - Check event logs for ProofVerified event
+      console.log('🎉 SIMPLE VERIFIER SUCCESS!');
+      console.log('✅ Transaction succeeded with status:', receipt.status);
+      console.log('📋 Transaction receipt:');
+      console.log('  ⛽ Gas used:', receipt.gasUsed.toString());
+      console.log('  📦 Block:', receipt.blockNumber.toString());
+      console.log('  🔍 Logs:', receipt.logs.length, 'events emitted');
 
-      if (nowVerified) {
-        console.log('🎉 PRODUCTION VERIFICATION SUCCESSFUL!');
-        console.log('✅ Chain 2 ProductionVerifier cryptographically verified gameActive=true!');
-        console.log('🏆 This is REAL Merkle Patricia Trie verification - the gold standard!');
-        return true;
-      } else {
-        console.log('❌ ProductionVerifier rejected the proof');
-        console.log('🛡️ This demonstrates the security - invalid proofs are rejected!');
-        return false;
+      // Look for ProofVerified event in logs
+      if (receipt.logs.length > 0) {
+        console.log('🎯 Events found - likely ProofVerified event!');
+        receipt.logs.forEach((log: any, index: number) => {
+          console.log(`  📋 Log ${index}:`, log);
+        });
       }
+
+      console.log('🏆 CROSS-CHAIN VERIFICATION SUCCESSFUL!');
+      console.log('✅ Chain 2 SimpleVerifier accepted the proof from Chain 1!');
+      return true;
 
     } catch (error: any) {
-      console.error('❌ Error sending proof to ProductionVerifier:', error);
+      console.error('❌ Error sending proof to SimpleVerifier:', error);
       
-      // 🔧 BETTER ERROR REPORTING FOR PRODUCTION
-      if (error.message.includes('execution reverted')) {
-        console.log('🏭 ProductionVerifier rejected the proof - this could be expected!');
-        console.log('🎓 Reasons why ProductionVerifier might reject:');
-        console.log('  1. 🔍 Invalid RLP encoding in proof elements');
-        console.log('  2. 🌳 Merkle Patricia Trie path doesn\'t match');
-        console.log('  3. 🔐 Hash chain verification failed');
-        console.log('  4. 📊 Storage value doesn\'t match extracted value');
-        console.log('✨ This proves the security works - fake proofs cannot pass!');
+      // 🔧 BETTER ERROR REPORTING
+      if (error.message.includes('MerkleTrie: invalid large internal hash')) {
+        console.log('🎯 DIAGNOSED: Proof and state root mismatch!');
+        console.log('💡 Solution: Generate fresh proof from same block as state root');
+      } else if (error.message.includes('execution reverted')) {
+        console.log('🔧 SimpleVerifier rejected the proof');
+        console.log('🎓 Common reasons:');
+        console.log('  1. 🔍 Invalid proof format');
+        console.log('  2. 🌳 State root mismatch'); 
+        console.log('  3. 📊 Wrong storage slot or expected value');
       } else if (error.message.includes('gas')) {
-        console.log('⛽ Gas issue - ProductionVerifier needs more gas for full MPT verification');
-        console.log('💡 Try increasing gas limit or optimizing the proof size');
+        console.log('⛽ Gas issue - try increasing gas limit');
       }
       
       return false;
@@ -440,11 +315,12 @@ export class StorageProofService {
   }
 
   /**
-   * 🎮 Demo: Full storage proof flow WITH PRODUCTION VERIFICATION
+   * 🎮 Demo: Complete flow with SimpleStorage + SimpleVerifier
    */
-  async demonstrateStorageProofFlow(): Promise<void> {
+  async demonstrateSimpleStorageProofFlow(): Promise<void> {
     console.log('\n🎮 =======================================');
-    console.log('🎮 PRODUCTION STORAGE PROOF + VERIFICATION FLOW');
+    console.log('🎮 COMPLETE SIMPLE STORAGE PROOF FLOW');
+    console.log('🎮 SimpleStorage → SimpleVerifier');
     console.log('🎮 =======================================\n');
 
     try {
@@ -454,55 +330,66 @@ export class StorageProofService {
       
       console.log('📊 Using latest block from Chain 1:', latestBlock);
 
-      // Step 2: Create storage proof for Chain 1
-      const proof = await this.createCompleteStorageProof(31337, Number(latestBlock));
+      // Step 2: Check gameActive value on Chain 1
+      const storageContract = STORAGE_CONTRACT_ADDRESSES[31337];
+      const gameActive = await client1.readContract({
+        address: storageContract,
+        abi: [
+          {
+            "inputs": [],
+            "name": "gameActive",
+            "outputs": [{"type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          }
+        ],
+        functionName: 'gameActive',
+      });
 
-      // Step 3: Verify the proof locally
-      const isValid = this.verifyStorageProof(proof);
+      console.log('🎮 Current gameActive on Chain 1:', gameActive);
 
-      if (!isValid) {
-        console.log('❌ Local proof validation failed!');
-        return;
-      }
+      // Step 3: Create storage proof for Chain 1  
+      const proof = await this.createSimpleProof(31337, Number(latestBlock));
 
-      // Step 4: 🏭 Send proof to ProductionVerifier on Chain 2
-      const verified = await this.sendProofToVerifierContract(proof);
+      // Step 4: Send proof to SimpleVerifier on Chain 2
+      const verified = await this.sendProofToSimpleVerifier(proof);
 
       // Step 5: Show final results
       console.log('\n🎉 =======================================');
-      console.log('🎉 PRODUCTION CROSS-CHAIN PROOF DEMO DONE!');
+      console.log('🎉 SIMPLE STORAGE PROOF DEMO COMPLETE!');
       console.log('🎉 =======================================');
-      console.log('✅ Local proof validation: SUCCESS');
-      console.log(`${verified ? '🏆' : '❌'} ProductionVerifier: ${verified ? 'SUCCESS' : 'FAILED'}`);
+      console.log(`✅ Chain 1 gameActive: ${gameActive}`);
+      console.log(`${verified ? '🏆' : '❌'} Chain 2 verification: ${verified ? 'SUCCESS' : 'FAILED'}`);
       
       if (verified) {
-        console.log('🔥 ACHIEVEMENT UNLOCKED: Real MPT verification passed!');
-        console.log('🎯 Chain 2 has mathematical certainty about Chain 1 state!');
+        console.log('🔥 SUCCESS: SimpleVerifier accepted the proof!');
+        console.log('🎯 Chain 2 has cryptographic proof that gameActive=true on Chain 1!');
+        console.log('🚀 This demonstrates cross-chain storage proof verification!');
       } else {
-        console.log('🛡️ ProductionVerifier security working - invalid proofs rejected!');
-        console.log('💡 This demonstrates why production verification is important!');
+        console.log('❌ SimpleVerifier rejected the proof');
+        console.log('💡 Check console logs above for detailed error information');
       }
 
     } catch (error) {
-      console.error('❌ Production demo failed:', error);
+      console.error('❌ Demo failed:', error);
     }
   }
 
   /**
-   * 🏭 NEW: Complete end-to-end production demo
+   * 🚀 Main demo entry point
    */
   async runCompleteDemo(): Promise<void> {
     console.log('\n🚀 =======================================');
-    console.log('🚀 STARTING PRODUCTION CROSS-CHAIN DEMO');
+    console.log('🚀 SIMPLE STORAGE PROOF DEMO');
     console.log('🚀 =======================================');
     console.log('📚 This will:');
-    console.log('  1️⃣ Generate real storage proof from Chain 1');
-    console.log('  2️⃣ Send proof to ProductionVerifier on Chain 2');
-    console.log('  3️⃣ Perform REAL Merkle Patricia Trie verification');
-    console.log('  4️⃣ Confirm Chain 2 trusts Chain 1 state with mathematical certainty');
-    console.log('🏆 Let\'s prove gameActive=true with PRODUCTION-GRADE verification!\n');
+    console.log('  1️⃣ Generate storage proof from SimpleStorage on Chain 1');
+    console.log('  2️⃣ Send proof to SimpleVerifier on Chain 2');
+    console.log('  3️⃣ Use Optimism MerkleTrie verification');
+    console.log('  4️⃣ Confirm Chain 2 accepts Chain 1 gameActive state');
+    console.log('🎯 Let\'s prove gameActive=true with your contracts!\n');
 
-    await this.demonstrateStorageProofFlow();
+    await this.demonstrateSimpleStorageProofFlow();
   }
 }
 

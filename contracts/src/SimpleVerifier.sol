@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import { MerkleTrie } from "@eth-optimism/contracts-bedrock/libraries/trie/MerkleTrie.sol";
 import { RLPReader } from "@eth-optimism/contracts-bedrock/libraries/rlp/RLPReader.sol";
+import "forge-std/console.sol";
 
 /**
  * 🚀 SIMPLE CROSS-CHAIN VERIFIER
@@ -28,12 +29,13 @@ contract SimpleVerifier {
      * 🎯 IMPROVED VERIFICATION - Using Optimism's verifyInclusionProof correctly!
      */
     function verifySimpleProof(SimpleProof calldata proof) external returns (bool) {
+
         // Step 1: Get account data from STATE trie to extract storage root
         bytes memory accountRLP = MerkleTrie.get(
             abi.encodePacked(proof.contractAddress), // Account address as key
             proof.accountProof,                      // Account proof
             proof.stateRoot                          // State root
-        );
+        ); 
 
         // Ensure account exists (get() will revert if account doesn't exist)
         if (accountRLP.length == 0) {
@@ -78,5 +80,4 @@ contract SimpleVerifier {
         emit ProofVerified(proof.contractAddress, proof.storageSlot, storageVerified);
         return storageVerified;
     }
-
 }
