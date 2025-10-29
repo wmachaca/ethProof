@@ -6,13 +6,11 @@ libs = ["lib"]
 remappings = [
     # CRITICAL: Optimism internal imports MUST come first
     "src/libraries/=lib/optimism/packages/contracts-bedrock/src/libraries/",
-    "src/=lib/optimism/packages/contracts-bedrock/src/",
-    
     # Then your project-specific remappings
     "@eth-optimism/contracts-bedrock=lib/optimism/packages/contracts-bedrock/src",
     "solidity-rlp=lib/solidity-rlp/contracts",
     '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
-    "forge-std=lib/forge-std/src"
+    "forge-std=lib/forge-std/src",
 ]
 
 fs_permissions = [{ access = "read-write", path = "./" }]
