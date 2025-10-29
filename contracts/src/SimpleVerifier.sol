@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { MerkleTrie } from "@eth-optimism/contracts-bedrock/libraries/trie/MerkleTrie.sol";
-import { RLPReader } from "@eth-optimism/contracts-bedrock/libraries/rlp/RLPReader.sol";
-import "forge-std/console.sol";
+import { MerkleTrie } from '@eth-optimism/contracts-bedrock/libraries/trie/MerkleTrie.sol';
+import { RLPReader } from '@eth-optimism/contracts-bedrock/libraries/rlp/RLPReader.sol';
+import 'forge-std/console.sol';
 
 /**
  * 🚀 SIMPLE CROSS-CHAIN VERIFIER
@@ -15,12 +15,12 @@ contract SimpleVerifier {
 
   // Simple proof structure
   struct SimpleProof {
-      bytes32 stateRoot;
-      address contractAddress;
-      bytes32 storageSlot;
-      bytes32 expectedValue;
-      bytes[] accountProof;
-      bytes[] storageProof;
+    bytes32 stateRoot;
+    address contractAddress;
+    bytes32 storageSlot;
+    bytes32 expectedValue;
+    bytes[] accountProof;
+    bytes[] storageProof;
   }
 
   event ProofVerified(address contractAddress, bytes32 slot, bool success);
@@ -29,11 +29,8 @@ contract SimpleVerifier {
    * 🎯 IMPROVED VERIFICATION - Using Optimism's verifyInclusionProof correctly!
    */
   function verifySimpleProof(SimpleProof calldata proof) external returns (bool) {
-
     // Step 1: Get account data from STATE trie to extract storage root
-    bytes memory accountKey  = abi.encodePacked(
-      keccak256(abi.encodePacked(proof.contractAddress))
-    );
+    bytes memory accountKey = abi.encodePacked(keccak256(abi.encodePacked(proof.contractAddress)));
 
     bytes memory accountRlp = MerkleTrie.get(
       accountKey, // Account address as key
@@ -64,10 +61,10 @@ contract SimpleVerifier {
     bytes memory expectedValueRLP;
     if (proof.expectedValue == bytes32(0)) {
       // Empty storage slot - empty bytes
-      expectedValueRLP = "";
+      expectedValueRLP = '';
     } else if (proof.expectedValue == bytes32(uint256(1))) {
       // For value 1 (true), RLP encoding is just the single byte 0x01
-      expectedValueRLP = hex"01";
+      expectedValueRLP = hex'01';
     } else {
       // For other values, use the minimal non-zero bytes
       expectedValueRLP = abi.encodePacked(proof.expectedValue);
@@ -76,14 +73,13 @@ contract SimpleVerifier {
     // Step 4: Verify the EXACT expected value exists in STORAGE trie
     // This is the key improvement - we verify the specific value, not just existence!
     bool storageVerified = MerkleTrie.verifyInclusionProof(
-        abi.encodePacked(storageKey),    // Storage key
-        expectedValueRLP,                // Expected value (what we want to prove)
-        proof.storageProof,              // Storage proof
-        storageRoot                      // Storage root from account
+      abi.encodePacked(storageKey), // Storage key
+      expectedValueRLP, // Expected value (what we want to prove)
+      proof.storageProof, // Storage proof
+      storageRoot // Storage root from account
     );
 
     emit ProofVerified(proof.contractAddress, proof.storageSlot, storageVerified);
     return storageVerified;
-
   }
 }
