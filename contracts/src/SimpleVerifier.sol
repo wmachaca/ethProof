@@ -3,7 +3,6 @@ pragma solidity ^0.8.19;
 
 import { MerkleTrie } from '@eth-optimism/contracts-bedrock/libraries/trie/MerkleTrie.sol';
 import { RLPReader } from '@eth-optimism/contracts-bedrock/libraries/rlp/RLPReader.sol';
-import 'forge-std/console.sol';
 
 /**
  * 🚀 SIMPLE CROSS-CHAIN VERIFIER
@@ -58,23 +57,23 @@ contract SimpleVerifier {
     bytes32 storageKey = keccak256(abi.encodePacked(proof.storageSlot));
 
     // Convert expected value to RLP-encoded bytes (as stored in trie)
-    bytes memory expectedValueRLP;
+    bytes memory expectedValueRlp;
     if (proof.expectedValue == bytes32(0)) {
       // Empty storage slot - empty bytes
-      expectedValueRLP = '';
+      expectedValueRlp = '';
     } else if (proof.expectedValue == bytes32(uint256(1))) {
       // For value 1 (true), RLP encoding is just the single byte 0x01
-      expectedValueRLP = hex'01';
+      expectedValueRlp = hex'01';
     } else {
       // For other values, use the minimal non-zero bytes
-      expectedValueRLP = abi.encodePacked(proof.expectedValue);
+      expectedValueRlp = abi.encodePacked(proof.expectedValue);
     }
 
     // Step 4: Verify the EXACT expected value exists in STORAGE trie
     // This is the key improvement - we verify the specific value, not just existence!
     bool storageVerified = MerkleTrie.verifyInclusionProof(
       abi.encodePacked(storageKey), // Storage key
-      expectedValueRLP, // Expected value (what we want to prove)
+      expectedValueRlp, // Expected value (what we want to prove)
       proof.storageProof, // Storage proof
       storageRoot // Storage root from account
     );

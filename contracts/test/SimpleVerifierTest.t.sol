@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import 'forge-std/Test.sol';
+import { Test } from 'forge-std/Test.sol';
+import { console } from 'forge-std/console.sol';
 import { MerkleTrie } from '@eth-optimism/contracts-bedrock/libraries/trie/MerkleTrie.sol';
 import { RLPReader } from '@eth-optimism/contracts-bedrock/libraries/rlp/RLPReader.sol';
-import '../src/SimpleVerifier.sol';
+import { SimpleVerifier } from '../src/SimpleVerifier.sol';
 
 /**
  * EXACT REPRODUCTION DEBUG SUITE
